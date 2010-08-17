@@ -473,18 +473,23 @@ def _static_file(filename,
         elif new_filename.endswith('.css') and has_optimizer(CSS):
             content = optimize(content, CSS)
             # and _static_file() all images refered in the CSS file itself
+            path_for_relative = os.path.dirname(filename)
             def replacer(match):
-                filename = match.groups()[0]
-                if (filename.startswith('"') and filename.endswith('"')) or \
-                  (filename.startswith("'") and filename.endswith("'")):
-                    filename = filename[1:-1]
+                css_filename = match.groups()[0]
+                if (css_filename.startswith('"') and css_filename.endswith('"')) or \
+                  (css_filename.startswith("'") and css_filename.endswith("'")):
+                    css_filename = css_filename[1:-1]
+                    
+                abs_filename = css_filename
+                if abs_filename[0] != '/':
+                    abs_filename = os.path.normpath(os.path.join(path_for_relative, css_filename))
                 # It's really quite common that the CSS file refers to the file 
                 # that doesn't exist because if you refer to an image in CSS for
                 # a selector you never use you simply don't suffer.
                 # That's why we say not to warn on nonexisting files
-                new_filename = _static_file(filename, symlink_if_possible=symlink_if_possible,
+                new_filename = _static_file(abs_filename, symlink_if_possible=symlink_if_possible,
                                             warn_no_file=DEBUG and True or False)
-                return match.group().replace(filename, new_filename)
+                return match.group().replace(css_filename, new_filename)
             content = referred_css_images_regex.sub(replacer, content)
         elif slimmer:
             raise ValueError(
